@@ -1,4 +1,4 @@
-package core
+package message
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 // pools a little before the sending node gives up on them.
 const OutboxMaxAgeRounds = 10
 
-var log = logging.Logger("core")
+var log = logging.Logger("message")
 
 // QueuePolicy manages a message queue state in response to changes on the blockchain.
 type QueuePolicy interface {
