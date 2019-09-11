@@ -193,7 +193,7 @@ func (mbv *StubBlockValidator) StubSemanticValidationForBlock(child *types.Block
 
 // NewTestProcessor creates a processor with a test validator and test rewarder
 func NewTestProcessor() *consensus.DefaultProcessor {
-	return consensus.NewConfiguredProcessor(&TestSignedMessageValidator{}, &TestBlockRewarder{})
+	return consensus.NewConfiguredProcessor(&TestSignedMessageValidator{}, &TestBlockRewarder{}, nil)
 }
 
 type testSigner struct{}
@@ -216,7 +216,7 @@ func ApplyTestMessageWithGas(st state.Tree, store vm.StorageMap, msg *types.Mess
 	if err != nil {
 		panic(err)
 	}
-	applier := consensus.NewConfiguredProcessor(consensus.NewDefaultMessageValidator(), consensus.NewDefaultBlockRewarder())
+	applier := consensus.NewConfiguredProcessor(consensus.NewDefaultMessageValidator(), consensus.NewDefaultBlockRewarder(), nil)
 	return newMessageApplier(smsg, applier, st, store, bh, minerOwner, nil)
 }
 
@@ -257,5 +257,5 @@ func applyTestMessageWithAncestors(st state.Tree, store vm.StorageMap, msg *type
 }
 
 func newTestApplier() *consensus.DefaultProcessor {
-	return consensus.NewConfiguredProcessor(&TestSignedMessageValidator{}, &TestBlockRewarder{})
+	return consensus.NewConfiguredProcessor(&TestSignedMessageValidator{}, &TestBlockRewarder{}, nil)
 }

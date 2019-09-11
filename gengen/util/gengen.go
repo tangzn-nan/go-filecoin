@@ -13,6 +13,7 @@ import (
 	"github.com/filecoin-project/go-filecoin/address"
 	"github.com/filecoin-project/go-filecoin/consensus"
 	"github.com/filecoin-project/go-filecoin/crypto"
+	"github.com/filecoin-project/go-filecoin/journal"
 	"github.com/filecoin-project/go-filecoin/state"
 	"github.com/filecoin-project/go-filecoin/types"
 	"github.com/filecoin-project/go-filecoin/vm"
@@ -367,7 +368,9 @@ func applyMessageDirect(ctx context.Context, st state.Tree, vms vm.StorageMap, f
 	}
 
 	// create new processor that doesn't reward and doesn't validate
-	applier := consensus.NewConfiguredProcessor(&messageValidator{}, &blockRewarder{})
+
+	jb := journal.NewZapJournalBuilder("gengen.json")
+	applier := consensus.NewConfiguredProcessor(&messageValidator{}, &blockRewarder{}, jb)
 
 	res, err := applier.ApplyMessagesAndPayRewards(ctx, st, vms, []*types.SignedMessage{smsg}, address.Undef, types.NewBlockHeight(0), nil)
 	if err != nil {

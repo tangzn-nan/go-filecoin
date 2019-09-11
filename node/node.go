@@ -30,6 +30,7 @@ import (
 	"github.com/filecoin-project/go-filecoin/config"
 	"github.com/filecoin-project/go-filecoin/consensus"
 	"github.com/filecoin-project/go-filecoin/core"
+	"github.com/filecoin-project/go-filecoin/journal"
 	"github.com/filecoin-project/go-filecoin/metrics"
 	"github.com/filecoin-project/go-filecoin/mining"
 	"github.com/filecoin-project/go-filecoin/net"
@@ -176,6 +177,8 @@ type Node struct {
 
 	// Clock is a clock used by the node for time.
 	Clock clock.Clock
+
+	Journal journal.Journal
 }
 
 type blankValidator struct{}

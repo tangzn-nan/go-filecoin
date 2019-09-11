@@ -23,6 +23,7 @@ import (
 	"github.com/filecoin-project/go-filecoin/actor/builtin"
 	"github.com/filecoin-project/go-filecoin/actor/builtin/miner"
 	"github.com/filecoin-project/go-filecoin/address"
+	"github.com/filecoin-project/go-filecoin/journal"
 	"github.com/filecoin-project/go-filecoin/metrics/tracing"
 	"github.com/filecoin-project/go-filecoin/proofs/verification"
 	"github.com/filecoin-project/go-filecoin/state"
@@ -115,13 +116,19 @@ type Expected struct {
 	verifier verification.Verifier
 
 	blockTime time.Duration
+
+	journal journal.Journal
 }
 
 // Ensure Expected satisfies the Protocol interface at compile time.
 var _ Protocol = (*Expected)(nil)
 
 // NewExpected is the constructor for the Expected consenus.Protocol module.
-func NewExpected(cs *hamt.CborIpldStore, bs blockstore.Blockstore, processor Processor, v BlockValidator, pt PowerTableView, gCid cid.Cid, verifier verification.Verifier, bt time.Duration) *Expected {
+func NewExpected(cs *hamt.CborIpldStore, bs blockstore.Blockstore, processor Processor, v BlockValidator, pt PowerTableView, gCid cid.Cid, verifier verification.Verifier, bt time.Duration, jb journal.JournalBuilder) *Expected {
+	j, err := jb("consensus")
+	if err != nil {
+		panic(err)
+	}
 	return &Expected{
 		cstore:         cs,
 		blockTime:      bt,
@@ -131,6 +138,7 @@ func NewExpected(cs *hamt.CborIpldStore, bs blockstore.Blockstore, processor Pro
 		genesisCid:     gCid,
 		verifier:       verifier,
 		BlockValidator: v,
+		journal:        j,
 	}
 }
 
@@ -248,6 +256,7 @@ func (c *Expected) IsHeavier(ctx context.Context, a, b types.TipSet, aStateID, b
 // It errors if the tipset was not mined according to the EC rules, or if any of the messages
 // in the tipset results in an error.
 func (c *Expected) RunStateTransition(ctx context.Context, ts types.TipSet, tsMessages [][]*types.SignedMessage, tsReceipts [][]*types.MessageReceipt, ancestors []types.TipSet, priorStateID cid.Cid) (root cid.Cid, err error) {
+	c.journal.Record("RunStateTransition", "tipset", ts.Key().String())
 	ctx, span := trace.StartSpan(ctx, "Expected.RunStateTransition")
 	span.AddAttributes(trace.StringAttribute("tipset", ts.String()))
 	defer tracing.AddErrorEndSpan(ctx, span, &err)

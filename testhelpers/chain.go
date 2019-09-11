@@ -62,7 +62,8 @@ func MkFakeChild(params FakeChildParams) (*types.Block, error) {
 			VerifyPieceInclusionProofValid: true,
 			VerifySealValid:                true,
 		},
-		BlockTimeTest)
+		BlockTimeTest,
+		nil)
 	params.Consensus = con
 	return MkFakeChildWithCon(params)
 }

@@ -4,26 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/filecoin-project/go-filecoin/chain"
-	"github.com/filecoin-project/go-filecoin/clock"
-	"github.com/filecoin-project/go-filecoin/consensus"
-	"github.com/filecoin-project/go-filecoin/core"
-	"github.com/filecoin-project/go-filecoin/net"
-	"github.com/filecoin-project/go-filecoin/net/pubsub"
-	"github.com/filecoin-project/go-filecoin/plumbing"
-	"github.com/filecoin-project/go-filecoin/plumbing/cfg"
-	"github.com/filecoin-project/go-filecoin/plumbing/cst"
-	"github.com/filecoin-project/go-filecoin/plumbing/dag"
-	"github.com/filecoin-project/go-filecoin/plumbing/msg"
-	"github.com/filecoin-project/go-filecoin/plumbing/strgdls"
-	"github.com/filecoin-project/go-filecoin/porcelain"
-	"github.com/filecoin-project/go-filecoin/proofs/verification"
-	"github.com/filecoin-project/go-filecoin/repo"
-	"github.com/filecoin-project/go-filecoin/state"
-	"github.com/filecoin-project/go-filecoin/util/moresync"
-	"github.com/filecoin-project/go-filecoin/version"
-	"github.com/filecoin-project/go-filecoin/wallet"
-	"github.com/ipfs/go-bitswap"
 	bsnet "github.com/ipfs/go-bitswap/network"
 	bserv "github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-graphsync"
@@ -48,6 +28,28 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
+
+	"github.com/filecoin-project/go-filecoin/chain"
+	"github.com/filecoin-project/go-filecoin/clock"
+	"github.com/filecoin-project/go-filecoin/consensus"
+	"github.com/filecoin-project/go-filecoin/core"
+	"github.com/filecoin-project/go-filecoin/journal"
+	"github.com/filecoin-project/go-filecoin/net"
+	"github.com/filecoin-project/go-filecoin/net/pubsub"
+	"github.com/filecoin-project/go-filecoin/plumbing"
+	"github.com/filecoin-project/go-filecoin/plumbing/cfg"
+	"github.com/filecoin-project/go-filecoin/plumbing/cst"
+	"github.com/filecoin-project/go-filecoin/plumbing/dag"
+	"github.com/filecoin-project/go-filecoin/plumbing/msg"
+	"github.com/filecoin-project/go-filecoin/plumbing/strgdls"
+	"github.com/filecoin-project/go-filecoin/porcelain"
+	"github.com/filecoin-project/go-filecoin/proofs/verification"
+	"github.com/filecoin-project/go-filecoin/repo"
+	"github.com/filecoin-project/go-filecoin/state"
+	"github.com/filecoin-project/go-filecoin/util/moresync"
+	"github.com/filecoin-project/go-filecoin/version"
+	"github.com/filecoin-project/go-filecoin/wallet"
+	"github.com/ipfs/go-bitswap"
 )
 
 // Builder is a helper to aid in the construction of a filecoin node.
@@ -146,6 +148,12 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 		nc.Clock = clock.NewSystemClock()
 	}
 
+	rp, err := nc.Repo.Path()
+	if err != nil {
+		return nil, err
+	}
+	journalBuilder := journal.NewZapJournalBuilder(rp + "/journal.json")
+
 	bs := bstore.NewBlockstore(nc.Repo.Datastore())
 
 	validator := blankValidator{}
@@ -235,15 +243,15 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 	if nc.Rewarder == nil {
 		processor = consensus.NewDefaultProcessor()
 	} else {
-		processor = consensus.NewConfiguredProcessor(consensus.NewDefaultMessageValidator(), nc.Rewarder)
+		processor = consensus.NewConfiguredProcessor(consensus.NewDefaultMessageValidator(), nc.Rewarder, journalBuilder)
 	}
 
 	// set up consensus
 	var nodeConsensus consensus.Protocol
 	if nc.Verifier == nil {
-		nodeConsensus = consensus.NewExpected(&ipldCborStore, bs, processor, blkValid, powerTable, genCid, &verification.RustVerifier{}, nc.BlockTime)
+		nodeConsensus = consensus.NewExpected(&ipldCborStore, bs, processor, blkValid, powerTable, genCid, &verification.RustVerifier{}, nc.BlockTime, journalBuilder)
 	} else {
-		nodeConsensus = consensus.NewExpected(&ipldCborStore, bs, processor, blkValid, powerTable, genCid, nc.Verifier, nc.BlockTime)
+		nodeConsensus = consensus.NewExpected(&ipldCborStore, bs, processor, blkValid, powerTable, genCid, nc.Verifier, nc.BlockTime, journalBuilder)
 	}
 
 	// Set up libp2p network
@@ -268,12 +276,12 @@ func (nc *Builder) build(ctx context.Context) (*Node, error) {
 	// only the syncer gets the storage which is online connected
 	chainSyncer := chain.NewSyncer(nodeConsensus, chainStore, messageStore, fetcher, chainStatusReporter, nc.Clock)
 	msgPool := core.NewMessagePool(nc.Repo.Config().Mpool, consensus.NewIngestionValidator(chainState, nc.Repo.Config().Mpool))
-	inbox := core.NewInbox(msgPool, core.InboxMaxAgeTipsets, chainStore, messageStore)
+	inbox := core.NewInbox(msgPool, core.InboxMaxAgeTipsets, chainStore, messageStore, journalBuilder)
 
 	msgQueue := core.NewMessageQueue()
 	outboxPolicy := core.NewMessageQueuePolicy(messageStore, core.OutboxMaxAgeRounds)
 	msgPublisher := core.NewDefaultMessagePublisher(pubsub.NewPublisher(fsub), net.MessageTopic, msgPool)
-	outbox := core.NewOutbox(fcWallet, consensus.NewOutboundMessageValidator(), msgQueue, msgPublisher, outboxPolicy, chainStore, chainState)
+	outbox := core.NewOutbox(fcWallet, consensus.NewOutboundMessageValidator(), msgQueue, msgPublisher, outboxPolicy, chainStore, chainState, journalBuilder)
 
 	nd := &Node{
 		blockservice: bservice,

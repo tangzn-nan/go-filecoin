@@ -11,6 +11,7 @@ import (
 	"github.com/filecoin-project/go-filecoin/actor"
 	"github.com/filecoin-project/go-filecoin/actor/builtin/account"
 	"github.com/filecoin-project/go-filecoin/address"
+	"github.com/filecoin-project/go-filecoin/journal"
 	"github.com/filecoin-project/go-filecoin/metrics"
 	"github.com/filecoin-project/go-filecoin/metrics/tracing"
 	"github.com/filecoin-project/go-filecoin/state"
@@ -59,6 +60,7 @@ type ProcessTipSetResponse struct {
 type DefaultProcessor struct {
 	signedMessageValidator SignedMessageValidator
 	blockRewarder          BlockRewarder
+	journal                journal.Journal
 }
 
 var _ Processor = (*DefaultProcessor)(nil)
@@ -72,10 +74,15 @@ func NewDefaultProcessor() *DefaultProcessor {
 }
 
 // NewConfiguredProcessor creates a default processor with custom validation and rewards.
-func NewConfiguredProcessor(validator SignedMessageValidator, rewarder BlockRewarder) *DefaultProcessor {
+func NewConfiguredProcessor(validator SignedMessageValidator, rewarder BlockRewarder, jb journal.JournalBuilder) *DefaultProcessor {
+	j, err := jb("processor")
+	if err != nil {
+		panic(err)
+	}
 	return &DefaultProcessor{
 		signedMessageValidator: validator,
 		blockRewarder:          rewarder,
+		journal:                j,
 	}
 }
 
@@ -107,6 +114,10 @@ func NewConfiguredProcessor(validator SignedMessageValidator, rewarder BlockRewa
 // error was thrown causing any state changes to be rolled back.
 // See comments on ApplyMessage for specific intent.
 func (p *DefaultProcessor) ProcessBlock(ctx context.Context, st state.Tree, vms vm.StorageMap, blk *types.Block, blkMessages []*types.SignedMessage, ancestors []types.TipSet) (results []*ApplicationResult, err error) {
+	if p.journal != nil {
+		p.journal.Record("process_block", "block", blk.Cid().String())
+	}
+
 	ctx, span := trace.StartSpan(ctx, "DefaultProcessor.ProcessBlock")
 	span.AddAttributes(trace.StringAttribute("block", blk.Cid().String()))
 	defer tracing.AddErrorEndSpan(ctx, span, &err)
@@ -146,6 +157,10 @@ func (p *DefaultProcessor) ProcessBlock(ctx context.Context, st state.Tree, vms 
 // TipSet containing conflicting messages and are ignored.  Blocks are applied
 // in the sorted order of their tickets.
 func (p *DefaultProcessor) ProcessTipSet(ctx context.Context, st state.Tree, vms vm.StorageMap, ts types.TipSet, tsMessages [][]*types.SignedMessage, ancestors []types.TipSet) (response *ProcessTipSetResponse, err error) {
+	if p.journal != nil {
+		p.journal.Record("process_tipset", "tipset", ts.Key().String())
+	}
+
 	ctx, span := trace.StartSpan(ctx, "DefaultProcessor.ProcessTipSet")
 	span.AddAttributes(trace.StringAttribute("tipset", ts.String()))
 	defer tracing.AddErrorEndSpan(ctx, span, &err)
@@ -283,6 +298,10 @@ func (p *DefaultProcessor) ApplyMessage(ctx context.Context, st state.Tree, vms 
 	msgCid, err := msg.Cid()
 	if err != nil {
 		return nil, errors.FaultErrorWrap(err, "could not get message cid")
+	}
+
+	if p.journal != nil {
+		p.journal.Record("apply_message", "msg", msgCid.String())
 	}
 
 	tagMethod := msg.Method

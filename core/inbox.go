@@ -6,6 +6,7 @@ import (
 	"github.com/ipfs/go-cid"
 
 	"github.com/filecoin-project/go-filecoin/chain"
+	"github.com/filecoin-project/go-filecoin/journal"
 	"github.com/filecoin-project/go-filecoin/types"
 )
 
@@ -24,6 +25,8 @@ type Inbox struct {
 	// Provides tipsets for chain traversal.
 	chain           chainProvider
 	messageProvider MessageProvider
+
+	journal journal.Journal
 }
 
 // MessageProvider provides message collections given their cid.
@@ -32,12 +35,17 @@ type MessageProvider interface {
 }
 
 // NewInbox constructs a new inbox.
-func NewInbox(pool *MessagePool, maxAgeRounds uint, chain chainProvider, messages MessageProvider) *Inbox {
+func NewInbox(pool *MessagePool, maxAgeRounds uint, chain chainProvider, messages MessageProvider, jb journal.JournalBuilder) *Inbox {
+	j, err := jb("inbox")
+	if err != nil {
+		panic(err)
+	}
 	return &Inbox{
 		pool:            pool,
 		maxAgeTipsets:   maxAgeRounds,
 		chain:           chain,
 		messageProvider: messages,
+		journal:         j,
 	}
 }
 

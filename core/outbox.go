@@ -11,6 +11,7 @@ import (
 	"github.com/filecoin-project/go-filecoin/actor"
 	"github.com/filecoin-project/go-filecoin/address"
 	"github.com/filecoin-project/go-filecoin/consensus"
+	"github.com/filecoin-project/go-filecoin/journal"
 	"github.com/filecoin-project/go-filecoin/metrics"
 	"github.com/filecoin-project/go-filecoin/types"
 )
@@ -38,6 +39,8 @@ type Outbox struct {
 
 	// Protects the "next nonce" calculation to avoid collisions.
 	nonceLock sync.Mutex
+
+	journal journal.Journal
 }
 
 type actorProvider interface {
@@ -53,7 +56,11 @@ var msgSendErrCt = metrics.NewInt64Counter("message_sender_error", "Number of er
 
 // NewOutbox creates a new outbox
 func NewOutbox(signer types.Signer, validator consensus.SignedMessageValidator, queue *MessageQueue,
-	publisher publisher, policy QueuePolicy, chains chainProvider, actors actorProvider) *Outbox {
+	publisher publisher, policy QueuePolicy, chains chainProvider, actors actorProvider, jb journal.JournalBuilder) *Outbox {
+	j, err := jb("outbox")
+	if err != nil {
+		panic(err)
+	}
 	return &Outbox{
 		signer:    signer,
 		validator: validator,
@@ -62,6 +69,7 @@ func NewOutbox(signer types.Signer, validator consensus.SignedMessageValidator, 
 		policy:    policy,
 		chains:    chains,
 		actors:    actors,
+		journal:   j,
 	}
 }
 
@@ -78,6 +86,7 @@ func (ob *Outbox) Send(ctx context.Context, from, to address.Address, value type
 		if err != nil {
 			msgSendErrCt.Inc(ctx, 1)
 		}
+		ob.journal.Record("Send", "to", to.String(), "from", from.String(), "method", method, "error", err)
 	}()
 
 	encodedParams, err := abi.ToEncodedValues(params...)
