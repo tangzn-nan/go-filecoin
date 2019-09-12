@@ -131,6 +131,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	google.golang.org/grpc v1.22.1 // indirect
+	gopkg.in/yaml.v2 v2.2.2
 	gotest.tools v2.2.0+incompatible
 	sourcegraph.com/sourcegraph/go-diff v0.5.1-0.20190210232911-dee78e514455 // indirect
 )
