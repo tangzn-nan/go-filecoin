@@ -1,0 +1,15 @@
+FROM ubuntu:18.04 AS filecoin-base
+MAINTAINER Filecoin Dev Team
+
+RUN apt-get update && apt-get install -y ca-certificates build-essential clang jq
+
+# Built resources
+COPY tools/fast/devnets/deploy/deploy-sh           /usr/local/bin/deploy-sh
+COPY go-filecoin                                   /usr/local/bin/go-filecoin
+COPY gengen/gengen                                 /usr/local/bin/gengen
+COPY tools/faucet/faucet                           /usr/local/bin/faucet
+COPY tools/fast/devnets/deploy/deploy              /usr/local/bin/deploy
+COPY network-deployment.test                       /usr/local/bin/network-deployment.test
+COPY proofs/bin/paramfetch                         /usr/local/bin/paramfetch
+COPY proofs/bin/paramcache                         /usr/local/bin/paramcache
+COPY tools/genesis-file-server/genesis-file-server /usr/local/bin/genesis-file-server

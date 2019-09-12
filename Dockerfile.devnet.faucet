@@ -1,0 +1,16 @@
+FROM ubuntu:18.04 AS filecoin
+MAINTAINER Filecoin Dev Team
+
+# Built resources
+COPY --from=filecoin-base /usr/local/bin/faucet                  /usr/local/bin/faucet
+
+RUN adduser --home /var/filecoin -u 1000 --ingroup users --disabled-password --gecos "" filecoin
+RUN id filecoin
+
+EXPOSE 9797
+
+USER filecoin
+
+ENTRYPOINT ["/usr/local/bin/faucet"]
+
+CMD ["-help"]

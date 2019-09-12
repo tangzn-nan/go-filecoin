@@ -1,0 +1,27 @@
+FROM ubuntu:18.04 AS filecoin
+MAINTAINER Filecoin Dev Team
+
+# Base resources
+COPY --from=filecoin-base /etc/ssl/certs                       /etc/ssl/certs
+COPY --from=filecoin-base /lib/x86_64-linux-gnu/libdl-2.24.so  /lib/x86_64-linux-gnu/libdl-2.24.so
+COPY --from=filecoin-base /lib/x86_64-linux-gnu/librt.so.1     /lib/x86_64-linux-gnu/librt.so.1
+COPY --from=filecoin-base /lib/x86_64-linux-gnu/libgcc_s.so.1  /lib/x86_64-linux-gnu/libgcc_s.so.1
+COPY --from=filecoin-base /lib/x86_64-linux-gnu/libutil.so.1   /lib/x86_64-linux-gnu/libutil.so.1
+
+# Built resources
+COPY --from=filecoin-base /usr/local/bin/go-filecoin              /usr/local/bin/go-filecoin
+COPY --from=filecoin-base /usr/local/bin/network-deployment.test  /usr/local/bin/network-deployment.test
+
+RUN adduser --home /var/filecoin -u 1000 --ingroup users --disabled-password --gecos "" filecoin
+RUN id filecoin
+
+ENV FILECOIN_PARAMETER_CACHE="/var/filecoin-proof-parameters"
+
+# Location of proof parameter files
+VOLUME /var/filecoin-proof-parameters
+
+USER filecoin
+
+ENTRYPOINT ["/usr/local/bin/network-deployment.test"]
+
+CMD ["-help"]

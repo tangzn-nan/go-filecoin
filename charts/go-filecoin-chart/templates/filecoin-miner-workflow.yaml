@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "filecoin-miner-workflow-{{ randAlphaNum 5 | lower }}"
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: filecoin-miner-workflow
+          image: "{{ .Values.ImageTests }}"
+          env:
+            - name: FILECOIN_PARAMETER_CACHE
+              value: /opt/filecoin-proof-parameters
+          command: [
+            "network-deployment.test",
+            "-test.run=TestMinerWorkflow",
+            "-deployment={{ .Release.Namespace }}",
+            "-binary-path=/usr/local/bin/go-filecoin",
+          ]
+          volumeMounts:
+            - name: devnet-secrets
+              mountPath: /opt/filecoin
+              readOnly: true
+            - name: filecoin-parameter-cache
+              mountPath: /opt/filecoin-proof-parameters
+      volumes:
+      - name: devnet-secrets
+        secret:
+          secretName: filecoin
+      - name: filecoin-parameter-cache
+        hostPath:
+          path: "{{ .Values.ProofParamsDir }}"

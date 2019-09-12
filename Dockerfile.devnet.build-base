@@ -1,0 +1,43 @@
+FROM golang:1.12.1-stretch AS builder
+MAINTAINER Filecoin Dev Team
+
+RUN apt-get update && apt-get install -y ca-certificates build-essential clang jq
+
+ARG FILECOIN_USE_PRECOMPILED_RUST_PROOFS=yes
+ARG FILECOIN_USE_PRECOMPILED_BLS_SIGNATURES=yes
+
+COPY . /go/go-filecoin
+WORKDIR /go/go-filecoin
+
+RUN go mod download
+RUN ./scripts/install-rust-fil-proofs.sh
+RUN ./scripts/install-go-bls-sigs.sh
+RUN ./scripts/install-go-sectorbuilder.sh
+
+RUN go run ./build build-filecoin
+RUN go run ./build build-deploy
+RUN go run ./build build-gengen
+RUN go run ./build build-faucet
+RUN go run ./build build-network-deployment-test
+RUN go run ./build build-genesis-file-server
+
+FROM ubuntu:18.04 AS filecoin-base
+MAINTAINER Filecoin Dev Team
+
+# Base resources
+COPY --from=builder /etc/ssl/certs                       /etc/ssl/certs
+COPY --from=builder /lib/x86_64-linux-gnu/libdl-2.24.so  /lib/x86_64-linux-gnu/libdl-2.24.so
+COPY --from=builder /lib/x86_64-linux-gnu/librt.so.1     /lib/x86_64-linux-gnu/librt.so.1
+COPY --from=builder /lib/x86_64-linux-gnu/libgcc_s.so.1  /lib/x86_64-linux-gnu/libgcc_s.so.1
+COPY --from=builder /lib/x86_64-linux-gnu/libutil.so.1   /lib/x86_64-linux-gnu/libutil.so.1
+
+# Built resources
+COPY --from=builder /go/go-filecoin/tools/fast/devnets/deploy/deploy-sh           /usr/local/bin/deploy-sh
+COPY --from=builder /go/go-filecoin/go-filecoin                                   /usr/local/bin/go-filecoin
+COPY --from=builder /go/go-filecoin/gengen/gengen                                 /usr/local/bin/gengen
+COPY --from=builder /go/go-filecoin/tools/faucet/faucet                           /usr/local/bin/faucet
+COPY --from=builder /go/go-filecoin/tools/fast/devnets/deploy/deploy              /usr/local/bin/deploy
+COPY --from=builder /go/go-filecoin/network-deployment.test                       /usr/local/bin/network-deployment.test
+COPY --from=builder /go/go-filecoin/proofs/bin/paramfetch                         /usr/local/bin/paramfetch
+COPY --from=builder /go/go-filecoin/proofs/bin/paramcache                         /usr/local/bin/paramcache
+COPY --from=builder /go/go-filecoin/tools/genesis-file-server/genesis-file-server /usr/local/bin/genesis-file-server
