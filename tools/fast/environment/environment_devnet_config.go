@@ -16,4 +16,9 @@ var devnetConfigs = map[string]DevnetConfig{
 		GenesisLocation: "https://genesis.staging.kittyhawk.wtf/genesis.car",
 		FaucetTap:       "https://faucet.staging.kittyhawk.wtf/tap",
 	},
+	"person": {
+		Name:            "person",
+		GenesisLocation: "https://genesis-person.kittyhawk.wtf/genesis.car",
+		FaucetTap:       "https://faucet-person.kittyhawk.wtf/tap",
+	},
 }

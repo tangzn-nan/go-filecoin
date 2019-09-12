@@ -140,6 +140,13 @@ const (
 	alphaStagingFilecoinBootstrap2 string = "/dns4/bootstrappers-2.alpha-staging.kittyhawk.wtf/tcp/30602/ipfs/QmbKWFbYgV7QRUNMQsQoUDJDVgaV7nm67LmrxkUTTKJDec"
 )
 
+// person devnet addrs
+const (
+	personFilecoinBootstrap0 string = "/dns4/bootstrappers-0.person.kittyhawk.wtf/tcp/30800/ipfs/QmQYZ6D4K73g34wZitadsPPHszQVg2iWyJfgJ1Bo1Bw54x"
+	personFilecoinBootstrap1 string = "/dns4/bootstrappers-1.person.kittyhawk.wtf/tcp/30801/ipfs/QmRApSqYNXGPQcaGVUHwppoy3HvzkdEp7mwRHUd7oEmGge"
+	personFilecoinBootstrap2 string = "/dns4/bootstrappers-2.person.kittyhawk.wtf/tcp/30802/ipfs/QmNRjHHCApCrHUHZBEXdfR7PC9fbAADJbbbHXWFz4JQPJV"
+)
+
 // DevnetStagingBootstrapAddrs are the dns multiaddrs for the nodes of the filecoin
 // staging devnet.
 var DevnetStagingBootstrapAddrs = []string{
@@ -176,4 +183,13 @@ var DevnetAlphaStagingBootstrapAddrs = []string{
 	alphaStagingFilecoinBootstrap0,
 	alphaStagingFilecoinBootstrap1,
 	alphaStagingFilecoinBootstrap2,
+}
+
+// DevnetAlphaStagingBootstrapAddrs are the dns multiaddrs for the nodes of the filecoin
+
+// alpha staging devnet
+var DevnetPersonBootstrapAddrs = []string{
+	personFilecoinBootstrap0,
+	personFilecoinBootstrap1,
+	personFilecoinBootstrap2,
 }

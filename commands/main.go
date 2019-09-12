@@ -81,6 +81,9 @@ const (
 	// DevnetAlphaStaging populates config bootstrap addrs with the dns multiaddrs of the alpha staging devnet and other alpha staging devnet specific bootstrap parameters
 	DevnetAlphaStaging = "devnet-alpha-staging"
 
+	// DevnetAlphaStaging populates config bootstrap addrs with the dns multiaddrs of the alpha staging devnet and other alpha staging devnet specific bootstrap parameters
+	DevnetPerson = "devnet-person"
+
 	// IsRelay when set causes the the daemon to provide libp2p relay
 	// services allowing other filecoin nodes behind NATs to talk directly.
 	IsRelay = "is-relay"
