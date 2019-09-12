@@ -122,7 +122,7 @@ spec:
             - name: config-volume
               mountPath: /opt/filecoin-deploy
         - name: faucet
-          image: "{{ .Values.Image }}"
+          image: "{{ .Values.ImageFaucet }}"
           imagePullPolicy: Always
           command: [
             "faucet",
