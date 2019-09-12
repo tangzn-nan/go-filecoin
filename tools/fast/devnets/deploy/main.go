@@ -171,14 +171,5 @@ func GetNode(ctx context.Context, processType, dir string, options map[string]st
 
 // NetworkPO converts a network string to a fast.ProcessInitOption for the desired network
 func NetworkPO(network string) fast.ProcessInitOption {
-	switch network {
-	case "user":
-		return fast.PODevnetUser()
-	case "stagingc":
-		return fast.PODevnetStaging()
-	case "nightly":
-		return fast.PODevnetNightly()
-	}
-
-	panic("Not a network")
+	return fast.PODevnet(network)
 }
