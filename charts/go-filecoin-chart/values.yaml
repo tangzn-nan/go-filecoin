@@ -1,7 +1,9 @@
 # Default values for go-filecoin-devnet.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-Image: "657871693752.dkr.ecr.us-east-1.amazonaws.com/filecoin:fast-deploy-5"
+Image: ""
+ImageTests: ""
+ImageFaucet: ""
 # For MicroK8S
 # StorageClassName: microk8s-hostpath
 # For EKS
