@@ -96,7 +96,7 @@ func (fem *FakeElectionMachine) IsElectionWinner(ctx context.Context, bs blockst
 type FakeTicketMachine struct{}
 
 // NextTicket returns a fake ticket
-func (ftm *FakeTicketMachine) NextTicket(parent types.Ticket, signerAddr address.Address, signer types.Signer, nullBlkCount uint64) (types.Ticket, error) {
+func (ftm *FakeTicketMachine) NextTicket(parent types.Ticket, signerAddr address.Address, signer types.Signer) (types.Ticket, error) {
 	return MakeFakeTicketForTest(), nil
 }
 
@@ -106,7 +106,7 @@ func (ftm *FakeTicketMachine) NotarizeTime(ticket *types.Ticket) error {
 }
 
 // ValidateTicket always returns true
-func (ftm *FakeTicketMachine) ValidateTicket(parent, ticket types.Ticket, signerAddr address.Address, nullBlkCount uint64) (bool, error) {
+func (ftm *FakeTicketMachine) ValidateTicket(parent, ticket types.Ticket, signerAddr address.Address) (bool, error) {
 	return true, nil
 }
 
@@ -114,7 +114,7 @@ func (ftm *FakeTicketMachine) ValidateTicket(parent, ticket types.Ticket, signer
 type FailingTicketValidator struct{}
 
 // ValidateTicket always returns false
-func (ftv *FailingTicketValidator) ValidateTicket(parent, ticket types.Ticket, signerAddr address.Address, nullBlkCount uint64) (bool, error) {
+func (ftv *FailingTicketValidator) ValidateTicket(parent, ticket types.Ticket, signerAddr address.Address) (bool, error) {
 	return false, nil
 }
 

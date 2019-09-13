@@ -144,28 +144,26 @@ func TestGenValidTicketChain(t *testing.T) {
 
 	schedule := struct {
 		Addrs     []address.Address
-		NullCount []uint64
 	}{
 		Addrs:     []address.Address{addr1, addr1, addr1, addr2, addr3, addr3, addr1, addr2},
-		NullCount: []uint64{0, 0, 1, 33, 2, 0, 0, 0},
 	}
 
 	// Grow the specified ticket chain without error
 	for i := 0; i < len(schedule.Addrs); i++ {
-		base = requireValidTicket(t, base, signer, schedule.Addrs[i], schedule.NullCount[i])
+		base = requireValidTicket(t, base, signer, schedule.Addrs[i])
 	}
 }
 
-func requireValidTicket(t *testing.T, parent types.Ticket, signer types.Signer, signerAddr address.Address, nullBlkCount uint64) types.Ticket {
+func requireValidTicket(t *testing.T, parent types.Ticket, signer types.Signer, signerAddr address.Address) types.Ticket {
 	tm := consensus.TicketMachine{}
 
-	ticket, err := tm.NextTicket(parent, signerAddr, signer, nullBlkCount)
+	ticket, err := tm.NextTicket(parent, signerAddr, signer)
 	require.NoError(t, err)
 
 	err = tm.NotarizeTime(&ticket)
 	assert.NoError(t, err)
 
-	valid, err := tm.ValidateTicket(parent, ticket, signerAddr, nullBlkCount)
+	valid, err := tm.ValidateTicket(parent, ticket, signerAddr)
 	require.NoError(t, err)
 	require.True(t, valid)
 	return ticket
@@ -176,7 +174,7 @@ func TestNextTicketFailsWithInvalidSigner(t *testing.T) {
 	signer, _ := types.NewMockSignersAndKeyInfo(1)
 	badAddr := address.TestAddress
 	tm := consensus.TicketMachine{}
-	badTicket, err := tm.NextTicket(parent, badAddr, signer, 0)
+	badTicket, err := tm.NextTicket(parent, badAddr, signer)
 	assert.Error(t, err)
 	assert.Nil(t, badTicket.VRFProof)
 }

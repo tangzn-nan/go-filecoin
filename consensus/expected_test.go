@@ -162,7 +162,7 @@ func TestExpected_RunStateTransition_validateMining(t *testing.T) {
 		}
 
 		_, err = exp.RunStateTransition(ctx, tipSet, emptyMessages, emptyReceipts, []types.TipSet{pTipSet}, genesisBlock.StateRoot)
-		assert.EqualError(t, err, "invalid ticket extension")
+		assert.Contains(t, err.Error(), "invalid ticket in position 0")
 	})
 }
 
