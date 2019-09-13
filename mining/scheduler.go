@@ -94,7 +94,8 @@ func (s *timingScheduler) Start(miningCtx context.Context) (<-chan Output, *sync
 	s.isStarted = true
 	go func() {
 		defer doneWg.Done()
-		nullBlkCount := 0
+		ticketArray := []types.Ticket{}
+		var newTicket types.Ticket
 		var prevBase types.TipSet
 		var prevWon bool
 		for {
@@ -119,10 +120,11 @@ func (s *timingScheduler) Start(miningCtx context.Context) (<-chan Output, *sync
 			}
 
 			// Determine how many null blocks we should mine with.
-			nullBlkCount = nextNullBlkCount(nullBlkCount, prevBase, base)
+			ticketArray = nextTicketArray(ticketArray, prevBase, base)
 
 			// Mine synchronously! Ignore all new tipsets.
-			prevWon = s.worker.Mine(miningCtx, base, nullBlkCount, outCh)
+			prevWon, newTicket = s.worker.Mine(miningCtx, base, ticketArray, outCh)
+			ticketArray = append(ticketArray, newTicket)
 			prevBase = base
 		}
 	}()
@@ -143,6 +145,27 @@ func (s *timingScheduler) Start(miningCtx context.Context) (<-chan Output, *sync
 // started
 func (s *timingScheduler) IsStarted() bool {
 	return s.isStarted
+}
+
+// nextTicketArray outputs the next ticket array for use in mining on top of
+// the current base tipset, curBase, given the previous base, prevBase and the
+// exisiting ticket array.
+func nextTicketArray(prevTicketArray []types.Ticket, prevBase, curBase types.TipSet) []types.Ticket {
+	// We haven't mined on this base before, start with empty ticket array.
+	if !prevBase.Defined() {
+		return []types.Ticket{}
+	}
+	// We mined on a different base last time.  We need to through away all
+	// tickets from mining on the previous base and start fresh.
+	if !prevBase.Equals(curBase) {
+		return []types.Ticket{}
+	}
+
+	// prevBase.Equals(curBase)
+	// We mined a null block last round and the ticket was added to
+	// prevTicketArray.  We are mining on the same base this round, so keep
+	// adding to the previous ticket array.
+	return prevTicketArray	
 }
 
 // nextNullBlkCount determines how many null blocks should be mined on top of

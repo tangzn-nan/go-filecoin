@@ -42,21 +42,21 @@ func (s *MockScheduler) IsStarted() bool {
 // TestWorker is a worker with a customizable work function to facilitate
 // easy testing.
 type TestWorker struct {
-	WorkFunc func(context.Context, types.TipSet, int, chan<- Output) bool
+	WorkFunc func(context.Context, types.TipSet, []types.Ticket, chan<- Output) (bool, types.Ticket)
 }
 
 // Mine is the TestWorker's Work function.  It simply calls the WorkFunc
 // field.
-func (w *TestWorker) Mine(ctx context.Context, ts types.TipSet, nullBlkCount int, outCh chan<- Output) bool {
+func (w *TestWorker) Mine(ctx context.Context, ts types.TipSet, ticketArray []types.Ticket, outCh chan<- Output) (bool, types.Ticket) {
 	if w.WorkFunc == nil {
 		panic("must set MutableTestWorker's WorkFunc before calling Work")
 	}
-	return w.WorkFunc(ctx, ts, nullBlkCount, outCh)
+	return w.WorkFunc(ctx, ts, ticketArray, outCh)
 }
 
-// NewTestWorkerWithDeps creates a worker that calls the provided input
+// NewTestWorkerWithDeps crates a worker that calls the provided input
 // function when Mine() is called.
-func NewTestWorkerWithDeps(f func(context.Context, types.TipSet, int, chan<- Output) bool) *TestWorker {
+func NewTestWorkerWithDeps(f func(context.Context, types.TipSet, []types.Ticket, chan<- Output) (bool, types.Ticket)) *TestWorker {
 	return &TestWorker{
 		WorkFunc: f,
 	}
@@ -64,15 +64,15 @@ func NewTestWorkerWithDeps(f func(context.Context, types.TipSet, int, chan<- Out
 
 // MakeEchoMine returns a test worker function that itself returns the first
 // block of the input tipset as output.
-func MakeEchoMine(t *testing.T) func(context.Context, types.TipSet, int, chan<- Output) bool {
-	echoMine := func(c context.Context, ts types.TipSet, nullBlkCount int, outCh chan<- Output) bool {
+func MakeEchoMine(t *testing.T) func(context.Context, types.TipSet, []types.Ticket, chan<- Output) (bool, types.Ticket) {
+	echoMine := func(c context.Context, ts types.TipSet, ticketArray []types.Ticket, outCh chan<- Output) (bool, types.Ticket) {
 		require.True(t, ts.Defined())
 		b := ts.At(0)
 		select {
 		case outCh <- Output{NewBlock: b}:
 		case <-c.Done():
 		}
-		return true
+		return true, types.Ticket{}
 	}
 	return echoMine
 }
