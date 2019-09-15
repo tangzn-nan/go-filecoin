@@ -111,12 +111,12 @@ func TestSchedulerUpdatesTicketArray(t *testing.T) {
 	// setting checkNullBlocks races with the mining delay timer.
 	expectedTArr = []types.Ticket{NthTicket(0)}
 	<-outCh
-	expectedTArr = []types.Ticket{NthTicket(0), NthTicket(1)}	
+	expectedTArr = []types.Ticket{NthTicket(0), NthTicket(1)}
 	<-outCh
-	expectedTArr = []types.Ticket{NthTicket(0), NthTicket(1), NthTicket(2)}	
+	expectedTArr = []types.Ticket{NthTicket(0), NthTicket(1), NthTicket(2)}
 	<-outCh
-	expectedTArr = []types.Ticket{NthTicket(0), NthTicket(1), NthTicket(2), NthTicket(3)}	
-	<-outCh		
+	expectedTArr = []types.Ticket{NthTicket(0), NthTicket(1), NthTicket(2), NthTicket(3)}
+	<-outCh
 	head = ts2
 	expectedTArr = []types.Ticket{}
 	<-outCh

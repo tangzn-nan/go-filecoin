@@ -13,7 +13,6 @@ import (
 	"github.com/filecoin-project/go-filecoin/address"
 	"github.com/filecoin-project/go-filecoin/consensus"
 	"github.com/filecoin-project/go-filecoin/state"
-	th "github.com/filecoin-project/go-filecoin/testhelpers"
 	tf "github.com/filecoin-project/go-filecoin/testhelpers/testflags"
 	"github.com/filecoin-project/go-filecoin/types"
 )
@@ -70,7 +69,7 @@ func TestIsElectionWinner(t *testing.T) {
 
 	t.Run("IsElectionWinner performs as expected on cases", func(t *testing.T) {
 		for _, c := range cases {
-			ptv := th.NewTestPowerTableView(types.NewBytesAmount(c.myPower), types.NewBytesAmount(c.totalPower))
+			ptv := consensus.NewTestPowerTableView(types.NewBytesAmount(c.myPower), types.NewBytesAmount(c.totalPower))
 			r, err := consensus.ElectionMachine{}.IsElectionWinner(ctx, bs, ptv, st, types.Ticket{VDFResult: c.ticket[:]}, c.electionProof, minerAddress, minerAddress)
 			assert.NoError(t, err)
 			assert.Equal(t, c.wins, r, "%+v", c)

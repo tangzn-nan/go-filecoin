@@ -51,35 +51,6 @@ func RequireNewTipSet(t *testing.T, blks ...*types.Block) types.TipSet {
 	return ts
 }
 
-// TestPowerTableView is an implementation of the powertable view used for testing mining
-// wherein each miner has totalPower/minerPower power.
-type TestPowerTableView struct{ minerPower, totalPower *types.BytesAmount }
-
-// NewTestPowerTableView creates a test power view with the given total power
-func NewTestPowerTableView(minerPower *types.BytesAmount, totalPower *types.BytesAmount) *TestPowerTableView {
-	return &TestPowerTableView{minerPower: minerPower, totalPower: totalPower}
-}
-
-// Total always returns value that was supplied to NewTestPowerTableView.
-func (tv *TestPowerTableView) Total(ctx context.Context, st state.Tree, bstore blockstore.Blockstore) (*types.BytesAmount, error) {
-	return tv.totalPower, nil
-}
-
-// Miner always returns value that was supplied to NewTestPowerTableView.
-func (tv *TestPowerTableView) Miner(ctx context.Context, st state.Tree, bstore blockstore.Blockstore, mAddr address.Address) (*types.BytesAmount, error) {
-	return tv.minerPower, nil
-}
-
-// HasPower always returns true.
-func (tv *TestPowerTableView) HasPower(ctx context.Context, st state.Tree, bstore blockstore.Blockstore, mAddr address.Address) bool {
-	return true
-}
-
-// WorkerAddr returns the miner address.
-func (tv *TestPowerTableView) WorkerAddr(_ context.Context, _ state.Tree, _ blockstore.Blockstore, mAddr address.Address) (address.Address, error) {
-	return mAddr, nil
-}
-
 // NewValidTestBlockFromTipSet creates a block for when proofs & power table don't need
 // to be correct
 func NewValidTestBlockFromTipSet(baseTipSet types.TipSet, stateRootCid cid.Cid, height uint64, minerAddr address.Address, minerWorker address.Address, signer types.Signer) *types.Block {

@@ -29,7 +29,7 @@ func TestNewExpected(t *testing.T) {
 
 	t.Run("a new Expected can be created", func(t *testing.T) {
 		cst, bstore := setupCborBlockstore()
-		ptv := th.NewTestPowerTableView(types.NewBytesAmount(1), types.NewBytesAmount(5))
+		ptv := consensus.NewTestPowerTableView(types.NewBytesAmount(1), types.NewBytesAmount(5))
 		exp := consensus.NewExpected(cst, bstore, consensus.NewDefaultProcessor(), th.NewFakeBlockValidator(), ptv, types.CidFromString(t, "somecid"), th.BlockTimeTest, &consensus.FakeElectionMachine{}, &consensus.FakeTicketMachine{})
 		assert.NotNil(t, exp)
 	})
@@ -89,7 +89,7 @@ func TestExpected_RunStateTransition_validateMining(t *testing.T) {
 
 	t.Run("passes the validateMining section when given valid mining blocks", func(t *testing.T) {
 
-		ptv := th.NewTestPowerTableView(minerPower, totalPower)
+		ptv := consensus.NewTestPowerTableView(minerPower, totalPower)
 		exp := consensus.NewExpected(cistore, bstore, th.NewTestProcessor(), th.NewFakeBlockValidator(), ptv, genesisBlock.Cid(), th.BlockTimeTest, &consensus.FakeElectionMachine{}, &consensus.FakeTicketMachine{})
 
 		pTipSet := types.RequireNewTipSet(t, genesisBlock)
@@ -114,7 +114,7 @@ func TestExpected_RunStateTransition_validateMining(t *testing.T) {
 	})
 
 	t.Run("returns nil + mining error when election proof validation fails", func(t *testing.T) {
-		ptv := th.NewTestPowerTableView(minerPower, totalPower)
+		ptv := consensus.NewTestPowerTableView(minerPower, totalPower)
 		exp := consensus.NewExpected(cistore, bstore, consensus.NewDefaultProcessor(), th.NewFakeBlockValidator(), ptv, types.CidFromString(t, "somecid"), th.BlockTimeTest, &consensus.FailingElectionValidator{}, &consensus.FakeTicketMachine{})
 
 		pTipSet := types.RequireNewTipSet(t, genesisBlock)
@@ -140,7 +140,7 @@ func TestExpected_RunStateTransition_validateMining(t *testing.T) {
 	})
 
 	t.Run("returns nil + mining error when ticket validation fails", func(t *testing.T) {
-		ptv := th.NewTestPowerTableView(minerPower, totalPower)
+		ptv := consensus.NewTestPowerTableView(minerPower, totalPower)
 		exp := consensus.NewExpected(cistore, bstore, consensus.NewDefaultProcessor(), th.NewFakeBlockValidator(), ptv, types.CidFromString(t, "somecid"), th.BlockTimeTest, &consensus.FakeElectionMachine{}, &consensus.FailingTicketValidator{})
 
 		pTipSet := types.RequireNewTipSet(t, genesisBlock)

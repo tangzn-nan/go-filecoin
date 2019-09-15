@@ -152,4 +152,3 @@ func (tv *TestPowerTableView) HasPower(ctx context.Context, st state.Tree, bstor
 func NthTicket(i uint8) types.Ticket {
 	return types.Ticket{VDFResult: []byte{i}}
 }
-
