@@ -311,7 +311,8 @@ func (c *Expected) validateMining(ctx context.Context, st state.Tree, ts types.T
 			return errors.Wrap(err, "failed to read worker address of block miner")
 		}
 		// Validate ElectionProof
-		result, err := c.IsElectionWinner(ctx, c.bstore, c.PwrTableView, st, blk.Tickets[0], blk.ElectionProof, workerAddr, blk.Miner)
+		numTickets := len(blk.Tickets)
+		result, err := c.IsElectionWinner(ctx, c.bstore, c.PwrTableView, st, blk.Tickets[numTickets-1], blk.ElectionProof, workerAddr, blk.Miner)
 		if err != nil {
 			return errors.Wrap(err, "failed checking election proof")
 		}
