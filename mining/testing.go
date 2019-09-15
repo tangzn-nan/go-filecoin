@@ -146,3 +146,10 @@ func (tv *TestPowerTableView) WorkerAddr(ctx context.Context, st state.Tree, bst
 func (tv *TestPowerTableView) HasPower(ctx context.Context, st state.Tree, bstore blockstore.Blockstore, mAddr address.Address) bool {
 	return true
 }
+
+// NthTicket returns a ticket with a vdf result equal to a byte slice wrapping
+// the input uint8 value.
+func NthTicket(i uint8) types.Ticket {
+	return types.Ticket{VDFResult: []byte{i}}
+}
+

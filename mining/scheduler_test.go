@@ -78,8 +78,9 @@ func TestSchedulerErrorsOnUnsetHead(t *testing.T) {
 	doneWg.Wait()
 }
 
-// If head is the same increment the nullblkcount, otherwise make it 0.
-func TestSchedulerUpdatesNullBlkCount(t *testing.T) {
+// If head is the same append the previous ticket to the the ticket array,
+// otherwise use an empty ticket array.
+func TestSchedulerUpdatesTicketArray(t *testing.T) {
 	tf.UnitTest(t)
 
 	ts := newTestUtils(t)
@@ -87,33 +88,37 @@ func TestSchedulerUpdatesNullBlkCount(t *testing.T) {
 	blk2 := &types.Block{StateRoot: types.CidFromString(t, "somecid"), Height: 1}
 	ts2 := th.RequireNewTipSet(t, blk2)
 
-	checkNullBlocks := 0
-	checkNullBlockMine := func(c context.Context, inTS types.TipSet, tArr []types.Ticket, outCh chan<- Output) (bool, types.Ticket) {
+	expectedTArr := []types.Ticket{}
+	checkTArrMine := func(c context.Context, inTS types.TipSet, tArr []types.Ticket, outCh chan<- Output) (bool, types.Ticket) {
 		select {
 		case <-ctx.Done():
 			return false, types.Ticket{}
 		default:
 		}
-		assert.Equal(t, checkNullBlocks, len(tArr))
+		assert.Equal(t, expectedTArr, tArr)
 		outCh <- Output{}
-		return false, types.Ticket{}
+		return false, NthTicket(uint8(len(tArr)))
 	}
 	var head types.TipSet
 	headFunc := func() (types.TipSet, error) {
 		return head, nil
 	}
-	worker := NewTestWorkerWithDeps(checkNullBlockMine)
+	worker := NewTestWorkerWithDeps(checkTArrMine)
 	scheduler := NewScheduler(worker, MineDelayTest, headFunc)
 	head = ts
 	outCh, _ := scheduler.Start(ctx)
 	<-outCh
 	// setting checkNullBlocks races with the mining delay timer.
-	checkNullBlocks = 1
+	expectedTArr = []types.Ticket{NthTicket(0)}
 	<-outCh
-	checkNullBlocks = 2
+	expectedTArr = []types.Ticket{NthTicket(0), NthTicket(1)}	
 	<-outCh
+	expectedTArr = []types.Ticket{NthTicket(0), NthTicket(1), NthTicket(2)}	
+	<-outCh
+	expectedTArr = []types.Ticket{NthTicket(0), NthTicket(1), NthTicket(2), NthTicket(3)}	
+	<-outCh		
 	head = ts2
-	checkNullBlocks = 0
+	expectedTArr = []types.Ticket{}
 	<-outCh
 	cancel()
 }
