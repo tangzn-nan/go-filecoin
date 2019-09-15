@@ -143,9 +143,9 @@ func TestGenValidTicketChain(t *testing.T) {
 	addr3 := requireAddress(t, &kis[2])
 
 	schedule := struct {
-		Addrs     []address.Address
+		Addrs []address.Address
 	}{
-		Addrs:     []address.Address{addr1, addr1, addr1, addr2, addr3, addr3, addr1, addr2},
+		Addrs: []address.Address{addr1, addr1, addr1, addr2, addr3, addr3, addr1, addr2},
 	}
 
 	// Grow the specified ticket chain without error

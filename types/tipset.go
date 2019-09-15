@@ -54,7 +54,7 @@ func NewTipSet(blocks ...*Block) (TipSet, error) {
 			if blk.Height != height {
 				return UndefTipSet, errors.Errorf("Inconsistent block heights %d and %d", height, blk.Height)
 			}
-			if len(blk.Tickets) !=  numTickets {
+			if len(blk.Tickets) != numTickets {
 				return UndefTipSet, errors.Errorf("Inconsistent ticket array length %d and %d", len(blk.Tickets), numTickets)
 			}
 			if !blk.Parents.Equals(parents) {

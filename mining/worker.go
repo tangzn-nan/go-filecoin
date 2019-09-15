@@ -191,7 +191,7 @@ func (w *DefaultWorker) Mine(ctx context.Context, base types.TipSet, ticketArray
 			return
 		}
 	} else {
-		prevTicket = ticketArray[len(ticketArray) - 1]
+		prevTicket = ticketArray[len(ticketArray)-1]
 	}
 
 	nextTicket, err = w.ticketGen.NextTicket(prevTicket, workerAddr, w.workerSigner)
@@ -224,7 +224,7 @@ func (w *DefaultWorker) Mine(ctx context.Context, base types.TipSet, ticketArray
 	case err := <-errCh:
 		log.Infof("Error notarizing time on ticket")
 		outCh <- Output{Err: err}
-		return 
+		return
 	}
 
 	// Run an election to check if this miner has won the right to mine
@@ -232,7 +232,7 @@ func (w *DefaultWorker) Mine(ctx context.Context, base types.TipSet, ticketArray
 	if err != nil {
 		log.Errorf("failed to run local election: %s", err)
 		outCh <- Output{Err: err}
-		return 
+		return
 	}
 	st, err := w.getStateTree(ctx, base)
 	if err != nil {
@@ -256,8 +256,8 @@ func (w *DefaultWorker) Mine(ctx context.Context, base types.TipSet, ticketArray
 		}
 		outCh <- NewOutput(next, err)
 		won = true
-		return 
+		return
 	}
 
-	return 
+	return
 }

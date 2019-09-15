@@ -165,22 +165,7 @@ func nextTicketArray(prevTicketArray []types.Ticket, prevBase, curBase types.Tip
 	// We mined a null block last round and the ticket was added to
 	// prevTicketArray.  We are mining on the same base this round, so keep
 	// adding to the previous ticket array.
-	return prevTicketArray	
-}
-
-// nextNullBlkCount determines how many null blocks should be mined on top of
-// the current base tipset, currBase, given the previous base, prevBase and the
-// previous number of null blocks mined on the previous base, prevNullBlkCount.
-func nextNullBlkCount(prevNullBlkCount int, prevBase, currBase types.TipSet) int {
-	// We haven't mined on this base before, start with 0 null blocks.
-	if !prevBase.Defined() {
-		return 0
-	}
-	if prevBase.String() != currBase.String() {
-		return 0
-	}
-	// We just mined this with prevNullBlkCount, increment.
-	return prevNullBlkCount + 1
+	return prevTicketArray
 }
 
 // NewScheduler returns a new timingScheduler to schedule mining work on the

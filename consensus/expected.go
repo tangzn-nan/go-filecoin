@@ -321,7 +321,7 @@ func (c *Expected) validateMining(ctx context.Context, st state.Tree, ts types.T
 
 		// Validate ticket array
 		// Block has same number of tickets as increase in height
-		if uint64(len(blk.Tickets)) != uint64(blk.Height) - prevHeight {
+		if uint64(len(blk.Tickets)) != uint64(blk.Height)-prevHeight {
 			return errors.New("invalid ticket array length")
 		}
 
@@ -330,7 +330,7 @@ func (c *Expected) validateMining(ctx context.Context, st state.Tree, ts types.T
 		for i := 0; i < len(blk.Tickets); i++ {
 			result, err = c.ValidateTicket(shifted[i], blk.Tickets[i], workerAddr)
 			if err != nil {
-				return errors.Wrapf(err, "failed checking ticket array in positiong %d in block %s", i, blk.Cid().String())
+				return errors.Wrapf(err, "failed checking ticket array in position %d in block %s", i, blk.Cid().String())
 			}
 			if !result {
 				return fmt.Errorf("invalid ticket in position %d in block %s", i, blk.Cid().String())
