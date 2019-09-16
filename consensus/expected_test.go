@@ -164,6 +164,35 @@ func TestExpected_RunStateTransition_validateMining(t *testing.T) {
 		_, err = exp.RunStateTransition(ctx, tipSet, emptyMessages, emptyReceipts, []types.TipSet{pTipSet}, genesisBlock.StateRoot)
 		assert.Contains(t, err.Error(), "invalid ticket in position 0")
 	})
+
+	t.Run("fails when ticket array length inconsistent with block height", func(t *testing.T) {
+		ptv := consensus.NewTestPowerTableView(minerPower, totalPower)
+		exp := consensus.NewExpected(cistore, bstore, th.NewTestProcessor(), th.NewFakeBlockValidator(), ptv, genesisBlock.Cid(), th.BlockTimeTest, &consensus.FakeElectionMachine{}, &consensus.FakeTicketMachine{})
+
+		pTipSet := types.RequireNewTipSet(t, genesisBlock)
+
+		stateTree, err := state.LoadStateTree(ctx, cistore, genesisBlock.StateRoot, builtin.Actors)
+		require.NoError(t, err)
+		vms := vm.NewStorageMap(bstore)
+
+		blocks := requireMakeBlocks(ctx, t, pTipSet, stateTree, vms)
+		// change ticket array lengths but not heights
+		blocks[0].Tickets = append(blocks[0].Tickets, types.Ticket{})
+		blocks[1].Tickets = append(blocks[1].Tickets, types.Ticket{})
+		blocks[2].Tickets = append(blocks[2].Tickets, types.Ticket{})
+
+		tipSet := types.RequireNewTipSet(t, blocks...)
+
+		var emptyMessages [][]*types.SignedMessage
+		var emptyReceipts [][]*types.MessageReceipt
+		for i := 0; i < len(blocks); i++ {
+			emptyMessages = append(emptyMessages, []*types.SignedMessage{})
+			emptyReceipts = append(emptyReceipts, []*types.MessageReceipt{})
+		}
+
+		_, err = exp.RunStateTransition(ctx, tipSet, emptyMessages, emptyReceipts, []types.TipSet{pTipSet}, blocks[0].StateRoot)
+		assert.Error(t, err)
+	})
 }
 
 func setupCborBlockstore() (*hamt.CborIpldStore, blockstore.Blockstore) {
