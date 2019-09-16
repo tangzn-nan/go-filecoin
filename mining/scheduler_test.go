@@ -1,15 +1,22 @@
-package mining
+package mining_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
+	"github.com/filecoin-project/go-filecoin/clock"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/filecoin-project/go-filecoin/address"
+	"github.com/filecoin-project/go-filecoin/chain"
+	"github.com/filecoin-project/go-filecoin/consensus"
+	. "github.com/filecoin-project/go-filecoin/mining"
+	"github.com/filecoin-project/go-filecoin/state"
 	th "github.com/filecoin-project/go-filecoin/testhelpers"
 	tf "github.com/filecoin-project/go-filecoin/testhelpers/testflags"
 	"github.com/filecoin-project/go-filecoin/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func newTestUtils(t *testing.T) types.TipSet {
@@ -32,6 +39,72 @@ func TestMineOnce(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, result.Err)
 	assert.True(t, ts.ToSlice()[0].StateRoot.Equals(result.NewBlock.StateRoot))
+}
+
+// Fake worker porcelain
+type fakeWorkerPorcelain struct{}
+
+func (fwp *fakeWorkerPorcelain) MinerGetWorkerAddress(ctx context.Context, minerAddr address.Address, baseKey types.TipSetKey) (address.Address, error) {
+	return minerAddr, nil
+}
+
+func (fwp *fakeWorkerPorcelain) BlockTime() time.Duration {
+	return time.Millisecond
+}
+
+// TestMineOnce10Null calls mine once off of a base tipset with a ticket that
+// will only win 10 rounds and verifies that the output has 10 tickets and a
+// +10 height.
+func TestMineOnce10Null(t *testing.T) {
+	mockSigner, kis := types.NewMockSignersAndKeyInfo(5)
+	ki := &(kis[0])
+	addr, err := ki.Address()
+	require.NoError(t, err)
+	baseTicket := consensus.SeedFirstWinnerInNRounds(t, 10, ki, 1, 10)
+	baseBlock := &types.Block{
+		StateRoot: types.CidFromString(t, "somecid"),
+		Height:    0,
+		Tickets:   []types.Ticket{baseTicket},
+	}
+	baseTs, err := types.NewTipSet(baseBlock)
+	require.NoError(t, err)
+
+	st, pool, _, cst, bs := sharedSetup(t, mockSigner)
+	getStateTree := func(c context.Context, ts types.TipSet) (state.Tree, error) {
+		return st, nil
+	}
+	getAncestors := func(ctx context.Context, ts types.TipSet, newBlockHeight *types.BlockHeight) ([]types.TipSet, error) {
+		return nil, nil
+	}
+	messages := chain.NewMessageStore(cst)
+
+	worker := NewDefaultWorker(WorkerParameters{
+		API: th.NewDefaultTestWorkerPorcelainAPI(addr),
+
+		MinerAddr:      addr,
+		MinerOwnerAddr: addr,
+		WorkerSigner:   mockSigner,
+
+		GetStateTree: getStateTree,
+		GetWeight:    getWeightTest,
+		GetAncestors: getAncestors,
+		Election:     &consensus.ElectionMachine{},
+		TicketGen:    &consensus.TicketMachine{},
+
+		MessageSource: pool,
+		Processor:     th.NewTestProcessor(),
+		PowerTable:    consensus.NewTestPowerTableView(types.NewBytesAmount(1), types.NewBytesAmount(10)),
+		Blockstore:    bs,
+		MessageStore:  messages,
+		Clock:         clock.NewSystemClock(),
+	})
+
+	result, err := MineOnce(context.Background(), worker, MineDelayTest, baseTs)
+	assert.NoError(t, err)
+	assert.NoError(t, result.Err)
+	block := result.NewBlock
+	assert.Equal(t, uint64(10), uint64(block.Height))
+	assert.Equal(t, 10, len(block.Tickets))
 }
 
 func TestSchedulerPassesValue(t *testing.T) {
