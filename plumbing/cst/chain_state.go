@@ -24,10 +24,15 @@ type chainReader interface {
 	GetTipSetState(context.Context, types.TipSetKey) (state.Tree, error)
 }
 
+type chainWriter interface {
+	SetHead(ctx context.Context, ts types.TipSet) error
+}
+
 // ChainStateProvider composes a chain and a state store to provide access to
 // the state (including actors) derived from a chain.
 type ChainStateProvider struct {
-	reader          chainReader         // Provides chain tipsets and state roots.
+	reader          chainReader // Provides chain tipsets and state roots.
+	writer          chainWriter
 	cst             *hamt.CborIpldStore // Provides chain blocks and state trees.
 	messageProvider chain.MessageProvider
 }
@@ -43,9 +48,10 @@ var (
 )
 
 // NewChainStateProvider returns a new ChainStateProvider.
-func NewChainStateProvider(chainReader chainReader, messages chain.MessageProvider, cst *hamt.CborIpldStore) *ChainStateProvider {
+func NewChainStateProvider(chainReader chainReader, chainWriter chainWriter, messages chain.MessageProvider, cst *hamt.CborIpldStore) *ChainStateProvider {
 	return &ChainStateProvider{
 		reader:          chainReader,
+		writer:          chainWriter,
 		cst:             cst,
 		messageProvider: messages,
 	}
@@ -162,4 +168,8 @@ func (chn *ChainStateProvider) GetActorSignature(ctx context.Context, actorAddr 
 	}
 
 	return export, nil
+}
+
+func (chn *ChainStateProvider) SetHead(ctx context.Context, ts types.TipSet) error {
+	return chn.writer.SetHead(ctx, ts)
 }

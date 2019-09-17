@@ -161,6 +161,11 @@ func (api *API) ChainHeadKey() types.TipSetKey {
 	return api.chain.Head()
 }
 
+// SetHead sets the passed in tipset as the new head of this chain.
+func (api *API) ChainSetHead(ctx context.Context, ts types.TipSet) error {
+	return api.chain.SetHead(ctx, ts)
+}
+
 // ChainTipSet returns the tipset at the given key
 func (api *API) ChainTipSet(key types.TipSetKey) (types.TipSet, error) {
 	return api.chain.GetTipSet(key)
