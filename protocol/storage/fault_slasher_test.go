@@ -28,11 +28,16 @@ func TestFaultSlasher_OnNewHeaviestTipSet(t *testing.T) {
 	data, err := cbor.DumpObject(&map[string]uint64{})
 	require.NoError(t, err)
 	queryer := makeQueryer([][]byte{data})
+
+	getf := address.NewForTestGetter()
+	ownMiner := getf()
+	ownWorker := signer.Addresses[0]
+
 	ob := outbox{}
 	sp := slasherPlumbing{
 		Queryer:    queryer,
-		minerAddr:  signer.Addresses[0],
-		workerAddr: signer.Addresses[1],
+		minerAddr:  ownMiner,
+		workerAddr: ownWorker,
 	}
 	fm := NewFaultSlasher(&sp, &ob, DefaultFaultSlasherGasPrice, DefaultFaultSlasherGasLimit)
 
@@ -62,11 +67,15 @@ func TestFaultSlasher_Slash(t *testing.T) {
 		require.NoError(t, err)
 		queryer := makeQueryer([][]byte{data})
 
+		getf := address.NewForTestGetter()
+		ownMiner := getf()
+		ownWorker := signer.Addresses[0]
+
 		ob := outbox{}
 		sp := slasherPlumbing{
 			Queryer:    queryer,
-			minerAddr:  signer.Addresses[0],
-			workerAddr: signer.Addresses[1],
+			minerAddr:  ownMiner,
+			workerAddr: ownWorker,
 		}
 		fm := NewFaultSlasher(&sp, &ob, DefaultFaultSlasherGasPrice, DefaultFaultSlasherGasLimit)
 
@@ -79,14 +88,17 @@ func TestFaultSlasher_Slash(t *testing.T) {
 		getf := address.NewForTestGetter()
 		height := types.NewBlockHeight(100)
 
-		addr1 := getf().String()
-		addr2 := getf().String()
-		addr3 := getf().String()
+		ownMiner := getf()
+		ownWorker := signer.Addresses[0]
+
+		badMiner1 := getf().String()
+		badMiner2 := getf().String()
+		badMiner3 := getf().String()
 
 		data, err := cbor.DumpObject(&map[string]uint64{
-			addr1: miner.PoStStateUnrecoverable,
-			addr2: miner.PoStStateUnrecoverable,
-			addr3: miner.PoStStateUnrecoverable,
+			badMiner1: miner.PoStStateUnrecoverable,
+			badMiner2: miner.PoStStateUnrecoverable,
+			badMiner3: miner.PoStStateUnrecoverable,
 		})
 		require.NoError(t, err)
 
@@ -94,8 +106,8 @@ func TestFaultSlasher_Slash(t *testing.T) {
 		ob := outbox{}
 		sp := slasherPlumbing{
 			Queryer:    queryer,
-			minerAddr:  signer.Addresses[0],
-			workerAddr: signer.Addresses[1],
+			minerAddr:  ownMiner,
+			workerAddr: ownWorker,
 		}
 		fm := NewFaultSlasher(&sp, &ob, DefaultFaultSlasherGasPrice, DefaultFaultSlasherGasLimit)
 		err = fm.Slash(ctx, height)
@@ -106,10 +118,14 @@ func TestFaultSlasher_Slash(t *testing.T) {
 	t.Run("slashes miner only once", func(t *testing.T) {
 		getf := address.NewForTestGetter()
 		height := types.NewBlockHeight(100)
-		addr1 := getf().String()
+
+		ownMiner := getf()
+		ownWorker := signer.Addresses[0]
+
+		badMiner1 := getf().String()
 
 		data1, err := cbor.DumpObject(&map[string]uint64{
-			addr1: miner.PoStStateUnrecoverable,
+			badMiner1: miner.PoStStateUnrecoverable,
 		})
 		require.NoError(t, err)
 
@@ -117,8 +133,8 @@ func TestFaultSlasher_Slash(t *testing.T) {
 		ob := outbox{}
 		plumbing := slasherPlumbing{
 			Queryer:    queryer,
-			minerAddr:  signer.Addresses[0],
-			workerAddr: signer.Addresses[1],
+			minerAddr:  ownMiner,
+			workerAddr: ownWorker,
 		}
 		fm := NewFaultSlasher(&plumbing, &ob, DefaultFaultSlasherGasPrice, DefaultFaultSlasherGasLimit)
 
@@ -131,10 +147,10 @@ func TestFaultSlasher_Slash(t *testing.T) {
 		assert.Equal(t, 1, ob.msgCount) // No change.
 
 		// A second miner becomes slashable.
-		addr2 := getf().String()
+		badMiner2 := getf().String()
 		data2, err := cbor.DumpObject(&map[string]uint64{
-			addr1: miner.PoStStateUnrecoverable,
-			addr2: miner.PoStStateUnrecoverable,
+			badMiner1: miner.PoStStateUnrecoverable,
+			badMiner2: miner.PoStStateUnrecoverable,
 		})
 		require.NoError(t, err)
 		plumbing.Queryer = makeQueryer([][]byte{data2})
@@ -143,15 +159,46 @@ func TestFaultSlasher_Slash(t *testing.T) {
 		assert.Equal(t, 2, ob.msgCount) // A new slashing message.
 	})
 
+	t.Run("does not slash own worker address", func(t *testing.T) {
+		getf := address.NewForTestGetter()
+		height := types.NewBlockHeight(100)
+
+		ownMiner := getf()
+		ownWorker := signer.Addresses[0]
+
+		data1, err := cbor.DumpObject(&map[string]uint64{
+			ownMiner.String(): miner.PoStStateUnrecoverable,
+		})
+		require.NoError(t, err)
+
+		queryer := makeQueryer([][]byte{data1})
+		ob := outbox{}
+		plumbing := slasherPlumbing{
+			Queryer:    queryer,
+			minerAddr:  ownMiner,
+			workerAddr: ownWorker,
+		}
+		fm := NewFaultSlasher(&plumbing, &ob, DefaultFaultSlasherGasPrice, DefaultFaultSlasherGasLimit)
+
+		err = fm.Slash(ctx, height)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, ob.msgCount)
+		assert.Equal(t, ownWorker, plumbing.workerAddr)
+	})
+
 	t.Run("error when send fails", func(t *testing.T) {
 		getf := address.NewForTestGetter()
 		height := types.NewBlockHeight(100)
-		addr1 := getf().String()
-		addr2 := getf().String()
+
+		ownMiner := getf()
+		ownWorker := signer.Addresses[0]
+
+		badMiner1 := getf().String()
+		badMiner2 := getf().String()
 
 		data, err := cbor.DumpObject(&map[string]uint64{
-			addr1: miner.PoStStateUnrecoverable,
-			addr2: miner.PoStStateUnrecoverable,
+			badMiner1: miner.PoStStateUnrecoverable,
+			badMiner2: miner.PoStStateUnrecoverable,
 		})
 		require.NoError(t, err)
 
@@ -159,8 +206,8 @@ func TestFaultSlasher_Slash(t *testing.T) {
 		ob := outbox{failSend: true, failErr: "Boom"}
 		sp := slasherPlumbing{
 			Queryer:    queryer,
-			minerAddr:  signer.Addresses[0],
-			workerAddr: signer.Addresses[1],
+			minerAddr:  ownMiner,
+			workerAddr: ownWorker,
 		}
 		fm := NewFaultSlasher(&sp, &ob, DefaultFaultSlasherGasPrice, DefaultFaultSlasherGasLimit)
 
@@ -171,6 +218,10 @@ func TestFaultSlasher_Slash(t *testing.T) {
 	})
 
 	t.Run("error when getLateMiners fails", func(t *testing.T) {
+		getf := address.NewForTestGetter()
+		ownMiner := getf()
+		ownWorker := signer.Addresses[0]
+
 		ob := outbox{}
 		queryer := func(ctx context.Context, optFrom, to address.Address, method string, params ...interface{}) ([][]byte, error) {
 			if method == "getLateMiners" {
@@ -180,8 +231,8 @@ func TestFaultSlasher_Slash(t *testing.T) {
 		}
 		sp := slasherPlumbing{
 			Queryer:    queryer,
-			minerAddr:  signer.Addresses[0],
-			workerAddr: signer.Addresses[1],
+			minerAddr:  ownMiner,
+			workerAddr: ownWorker,
 		}
 		fm := NewFaultSlasher(&sp, &ob, DefaultFaultSlasherGasPrice, DefaultFaultSlasherGasLimit)
 
@@ -191,6 +242,10 @@ func TestFaultSlasher_Slash(t *testing.T) {
 	})
 
 	t.Run("error when when message response malformed", func(t *testing.T) {
+		getf := address.NewForTestGetter()
+		ownMiner := getf()
+		ownWorker := signer.Addresses[0]
+
 		ob := outbox{}
 
 		badBytes, err := cbor.DumpObject("junk")
@@ -204,8 +259,8 @@ func TestFaultSlasher_Slash(t *testing.T) {
 		}
 		sp := slasherPlumbing{
 			Queryer:    queryer,
-			minerAddr:  signer.Addresses[0],
-			workerAddr: signer.Addresses[1],
+			minerAddr:  ownMiner,
+			workerAddr: ownWorker,
 		}
 		fm := NewFaultSlasher(&sp, &ob, DefaultFaultSlasherGasPrice, DefaultFaultSlasherGasLimit)
 
@@ -216,6 +271,10 @@ func TestFaultSlasher_Slash(t *testing.T) {
 	})
 
 	t.Run("when MinerGetWorkerAddress fails, returns error", func(t *testing.T) {
+		getf := address.NewForTestGetter()
+		ownMiner := getf()
+		ownWorker := signer.Addresses[0]
+
 		data, err := cbor.DumpObject(&map[string]uint64{})
 		require.NoError(t, err)
 		queryer := makeQueryer([][]byte{data})
@@ -223,8 +282,8 @@ func TestFaultSlasher_Slash(t *testing.T) {
 		sp := slasherPlumbing{
 			workerAddrFail: true,
 			Queryer:        queryer,
-			minerAddr:      signer.Addresses[0],
-			workerAddr:     signer.Addresses[1],
+			minerAddr:      ownMiner,
+			workerAddr:     ownWorker,
 		}
 		fm := NewFaultSlasher(&sp, &ob, DefaultFaultSlasherGasPrice, DefaultFaultSlasherGasLimit)
 
